@@ -1,0 +1,37 @@
+#+TITLE: Moonrise/Moonset Calculation for Emacs
+
+* Usage
+
+1. Add the following to your init.el:
+
+   #+begin_src emacs-lisp
+(with-eval-after-load "calendar"
+  (require 'moonrise)
+  (define-key calendar-mode-map "Ld" 'calendar-moonrise-moonset)
+  (define-key calendar-mode-map "Lm" 'calendar-moonrise-moonset-month))
+#+end_src
+
+2. M-x calendar
+
+3. Type L d
+
+   [[file:./screenshot-calendar-moonrise-moonset.png]]
+
+4. Type L m
+
+   [[file:./screenshot-calendar-moonrise-moonset-month.png]]
+
+
+* Add moonrise/moonset events to org-agenda
+
+Add the following line to an agenda file:
+
+#+begin_src org
+,#+CATEGORY: Astro
+,* Moonrise
+%%(moonrise-org-agenda)
+#+end_src
+
+[[file:./screenshot-org-agenda.png]]
+
+
