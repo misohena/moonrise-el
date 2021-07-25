@@ -29,8 +29,8 @@
 
 ;;; Code:
 
-(require 'cl)
 (require 'solar)
+(require 'svg)
 
 ;;
 ;; Settings
@@ -548,34 +548,32 @@
                                       phase (window-font-height)))
               str))))
 
-(when (featurep 'svg)
-  (require 'svg)
-  (defun moonrise-moon-phase-svg-image (phase size)
-    (let* ((svg (svg-create size size))
-           ;; center and radius
-           (cx (* 0.5 size))
-           (cy (* 0.5 size))
-           (radius (* 0.48 size))
-           ;; number of divisions
-           (ndiv 32)
-           (2pi/ndiv (* 2.0 (/ pi ndiv)))
-           ;; degrees to radians
-           (phase-rad (* 2.0 pi (/ (mod phase 360.0) 360.0)))
-           ;; left and right sides of sunlit portion
-           (right-edge (if (<= phase-rad pi) 1.0 (- (cos phase-rad))))
-           (left-edge (if (>= phase-rad pi) 1.0 (- (cos phase-rad)))))
-      ;; entire of moon
-      (svg-circle svg cx cy radius :fill "#000")
-      ;; sunlit portion
-      (svg-polygon
-       svg
-       (cl-loop for i from 0 to ndiv
-                collect (let ((i-rad (* i 2pi/ndiv))
-                              (edge (if (< (* 2 i) ndiv) right-edge left-edge)))
-                          (cons (+ cx (* (sin i-rad) radius edge))
-                                (- cy (* (cos i-rad) radius)))))
-       :fill "#ffc")
-      (svg-image svg :ascent 'center))))
+(defun moonrise-moon-phase-svg-image (phase size)
+  (let* ((svg (svg-create size size))
+         ;; center and radius
+         (cx (* 0.5 size))
+         (cy (* 0.5 size))
+         (radius (* 0.48 size))
+         ;; number of divisions
+         (ndiv 32)
+         (2pi/ndiv (* 2.0 (/ pi ndiv)))
+         ;; degrees to radians
+         (phase-rad (* 2.0 pi (/ (mod phase 360.0) 360.0)))
+         ;; left and right sides of sunlit portion
+         (right-edge (if (<= phase-rad pi) 1.0 (- (cos phase-rad))))
+         (left-edge (if (>= phase-rad pi) 1.0 (- (cos phase-rad)))))
+    ;; entire of moon
+    (svg-circle svg cx cy radius :fill "#000")
+    ;; sunlit portion
+    (svg-polygon
+     svg
+     (cl-loop for i from 0 to ndiv
+              collect (let ((i-rad (* i 2pi/ndiv))
+                            (edge (if (< (* 2 i) ndiv) right-edge left-edge)))
+                        (cons (+ cx (* (sin i-rad) radius edge))
+                              (- cy (* (cos i-rad) radius)))))
+     :fill "#ffc")
+    (svg-image svg :ascent 'center)))
 
 
 ;;
