@@ -540,15 +540,21 @@
 ;;(moonrise-moon-phase (moonrise-jd2000-from-time (encode-time 0 37 11 24 7 2021))) => 180.???
 
 (defun moonrise-moon-phase-format-default (phase)
-  (concat " "
-          (let ((str (format "%.2f[deg]" phase)))
-            (if (featurep 'svg)
-                (propertize str
-                            'display (moonrise-moon-phase-svg-image
-                                      phase (window-font-height)))
-              str))))
+  (concat " " (moonrise-moon-phase-svg-image-string phase (1- (default-font-height)))))
 
-(defun moonrise-moon-phase-svg-image (phase size)
+(defun moonrise-moon-phase-svg-image-string (phase size &optional ascent light shadow)
+  (let ((str (format "%.2f[deg]" phase)))
+    (if (featurep 'svg)
+        (propertize str
+                    'display (moonrise-moon-phase-svg-image phase size ascent light shadow))
+      str)))
+
+(defun moonrise-moon-phase-svg-image (phase size &optional ascent light shadow)
+  (svg-image
+   (moonrise-moon-phase-svg phase size light shadow)
+   :ascent (or ascent 'center)))
+
+(defun moonrise-moon-phase-svg (phase size &optional light shadow)
   (let* ((svg (svg-create size size))
          ;; center and radius
          (cx (* 0.5 size))
@@ -563,7 +569,7 @@
          (right-edge (if (<= phase-rad pi) 1.0 (- (cos phase-rad))))
          (left-edge (if (>= phase-rad pi) 1.0 (- (cos phase-rad)))))
     ;; entire of moon
-    (svg-circle svg cx cy radius :fill "#000")
+    (svg-circle svg cx cy radius :fill (or shadow "#000"))
     ;; sunlit portion
     (svg-polygon
      svg
@@ -572,8 +578,8 @@
                             (edge (if (< (* 2 i) ndiv) right-edge left-edge)))
                         (cons (+ cx (* (sin i-rad) radius edge))
                               (- cy (* (cos i-rad) radius)))))
-     :fill "#ffc")
-    (svg-image svg :ascent 'center)))
+     :fill (or light "#ffc"))
+    svg))
 
 
 ;;
