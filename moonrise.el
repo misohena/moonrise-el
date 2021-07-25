@@ -75,6 +75,25 @@
   :type '(list symbol)
   :group 'calendar)
 
+(defcustom moonrise-moon-phase-format
+  #'moonrise-moon-phase-format-default
+  "Moon phase format."
+  :type '(choice (string :tag "Format string")
+                 (function :tag "Formatter"))
+  :group 'calendar)
+
+(defcustom moonrise-moon-phase-display-points
+  '(meridian)
+  "List of points display moon phase."
+  :type '(list symbol)
+  :group 'calendar)
+
+(defcustom moonrise-moon-phase-display-points-org-agenda
+  '(rise)
+  "List of points display moon phase for org-phasenda."
+  :type '(list symbol)
+  :group 'calendar)
+
 
 ;;
 ;; Math Utilities
@@ -505,6 +524,61 @@
 
 
 ;;
+;; Moon Phase
+;;
+
+(defun moonrise-moon-phase (jd2000)
+  (let* ((et (solar-ephemeris-correction (caddr (moonrise-utdate-from-jd2000 jd2000))))
+         (solar-long (solar-longitude (moonrise-local-astro-from-jd2000 jd2000)))
+         (lunar-long (moonrise-normalize-degrees
+                      (moonrise-ecliptic-longitude
+                       (moonrise-jd-to-jy (+ jd2000 et)))))
+         (solar-to-lunar-angle (moonrise-normalize-degrees
+                                (- lunar-long solar-long))))
+    solar-to-lunar-angle))
+
+;;(moonrise-moon-phase (moonrise-jd2000-from-time (encode-time 0 37 11 24 7 2021))) => 180.???
+
+(defun moonrise-moon-phase-format-default (phase)
+  (concat " "
+          (let ((str (format "%.2f[deg]" phase)))
+            (if (featurep 'svg)
+                (propertize str
+                            'display (moonrise-moon-phase-svg-image
+                                      phase (window-font-height)))
+              str))))
+
+(when (featurep 'svg)
+  (require 'svg)
+  (defun moonrise-moon-phase-svg-image (phase size)
+    (let* ((svg (svg-create size size))
+           ;; center and radius
+           (cx (* 0.5 size))
+           (cy (* 0.5 size))
+           (radius (* 0.48 size))
+           ;; number of divisions
+           (ndiv 32)
+           (2pi/ndiv (* 2.0 (/ pi ndiv)))
+           ;; degrees to radians
+           (phase-rad (* 2.0 pi (/ (mod phase 360.0) 360.0)))
+           ;; left and right sides of sunlit portion
+           (right-edge (if (<= phase-rad pi) 1.0 (- (cos phase-rad))))
+           (left-edge (if (>= phase-rad pi) 1.0 (- (cos phase-rad)))))
+      ;; entire of moon
+      (svg-circle svg cx cy radius :fill "#000")
+      ;; sunlit portion
+      (svg-polygon
+       svg
+       (cl-loop for i from 0 to ndiv
+                collect (let ((i-rad (* i 2pi/ndiv))
+                              (edge (if (< (* 2 i) ndiv) right-edge left-edge)))
+                          (cons (+ cx (* (sin i-rad) radius edge))
+                                (- cy (* (cos i-rad) radius)))))
+       :fill "#ffc")
+      (svg-image svg :ascent 'center))))
+
+
+;;
 ;; Formatting
 ;;
 
@@ -518,6 +592,13 @@
    ((functionp moonrise-moon-age-format)
     (funcall moonrise-moon-age-format age))))
 
+(defun moonrise-moon-phase-string (phase)
+  (cond
+   ((stringp moonrise-moon-phase-format)
+    (format moonrise-moon-phase-format phase))
+   ((functionp moonrise-moon-phase-format)
+    (funcall moonrise-moon-phase-format phase))))
+
 (defun moonrise-time-string (time)
   (if time
       (let* ((tm (decode-time time (* calendar-time-zone 60)))
@@ -525,7 +606,7 @@
              (hour (nth 2 tm)))
         (solar-time-string (+ hour (/ min 60.0)) calendar-standard-time-zone-name))))
 
-(defun moonrise-time-and-point-string (time target-point moon-age-p)
+(defun moonrise-time-and-point-string (time target-point moon-age-p &optional moon-phase-p)
   (if time
       (concat
        (moonrise-point-name target-point)
@@ -533,11 +614,15 @@
        (moonrise-time-string time)
 
        (if moon-age-p
-           (moonrise-moon-age-string (moonrise-moon-age (moonrise-jd2000-from-time time)))))))
+           (moonrise-moon-age-string (moonrise-moon-age (moonrise-jd2000-from-time time))))
 
-(defun moonrise-moonset-string (local-date  &optional separator display-points moon-age-display-points)
+       (if moon-phase-p
+           (moonrise-moon-phase-string (moonrise-moon-phase (moonrise-jd2000-from-time time)))))))
+
+(defun moonrise-moonset-string (local-date  &optional separator display-points moon-age-display-points moon-phase-display-points)
   (if (null display-points) (setq display-points moonrise-display-points))
   (if (null moon-age-display-points) (setq moon-age-display-points moonrise-moon-age-display-points))
+  (if (null moon-phase-display-points) (setq moon-phase-display-points moonrise-moon-phase-display-points))
 
   (let ((day-begin (moonrise-jd2000-from-local-date local-date)))
     (mapconcat
@@ -545,7 +630,8 @@
        (moonrise-time-and-point-string
         (moonrise-time-from-jd2000 (car jdtp))
         (cdr jdtp)
-        (memq (cdr jdtp) moon-age-display-points)))
+        (memq (cdr jdtp) moon-age-display-points)
+        (memq (cdr jdtp) moon-phase-display-points)))
      (sort
       (delq nil
             (mapcar (lambda (target-point)
@@ -616,7 +702,8 @@ Accurate to a few seconds."
    org-agenda-current-date
    "; "
    moonrise-display-points-org-agenda
-   moonrise-moon-age-display-points-org-agenda))
+   moonrise-moon-age-display-points-org-agenda
+   moonrise-moon-phase-display-points-org-agenda))
 
 ;;(moonrise-org-agenda)
 
