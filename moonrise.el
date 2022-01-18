@@ -544,7 +544,12 @@
 
 (defun moonrise-moon-phase-svg-image-string (phase size &optional ascent light shadow)
   (let ((str (format "%.2f[deg]" phase)))
-    (if (featurep 'svg)
+    (if (and
+         (featurep 'image)
+         (featurep 'svg)
+         (display-graphic-p)
+         (fboundp 'image-type-available-p)
+         (image-type-available-p 'svg))
         (propertize str
                     'display (moonrise-moon-phase-svg-image phase size ascent light shadow))
       str)))
