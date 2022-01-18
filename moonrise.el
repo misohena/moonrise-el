@@ -126,11 +126,11 @@
 (defun moonrise-sum{a*sin{b+c*T}} (list-abc T)
   (let ((sum 0))
     (while list-abc
-      (incf sum (moonrise-a*sin{b+c*T}
-                 (pop list-abc)
-                 (pop list-abc)
-                 (pop list-abc)
-                 T)))
+      (cl-incf sum (moonrise-a*sin{b+c*T}
+                    (pop list-abc)
+                    (pop list-abc)
+                    (pop list-abc)
+                    T)))
     sum))
 
 (defun moonrise-A_m (T)
@@ -324,7 +324,7 @@
          (date (calendar-gregorian-from-absolute
                 (floor (+ (calendar-absolute-from-gregorian '(1 1.5 2000)) jd2000)))))
     (if (not (= frac 0))
-        (incf (cadr date) frac))
+        (cl-incf (cadr date) frac))
     date))
 
 ;; Calendar Date in Local Time
