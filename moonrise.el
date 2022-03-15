@@ -704,9 +704,22 @@ Accurate to a few seconds."
 
 ;; for org-agenda
 
+(defcustom moonrise-org-agenda-use-cache nil ""
+  :type 'boolean
+  :group 'calendar)
+
 (with-no-warnings (defvar org-agenda-current-date))
 
 (defun moonrise-org-agenda ()
+  (if moonrise-org-agenda-use-cache
+      (let ((key (moonrise-org-agenda-cache-key)))
+        (or (moonrise-org-agenda-cache-get key)
+            (moonrise-org-agenda-cache-put key
+                                           (moonrise-org-agenda-make-string))))
+    (moonrise-org-agenda-make-string)))
+;;(moonrise-org-agenda)
+
+(defun moonrise-org-agenda-make-string ()
   (moonrise-moonset-string
    org-agenda-current-date
    "; "
@@ -714,7 +727,22 @@ Accurate to a few seconds."
    moonrise-moon-age-display-points-org-agenda
    moonrise-moon-phase-display-points-org-agenda))
 
-;;(moonrise-org-agenda)
+(defvar moonrise-org-agenda-cache nil)
+
+(defun moonrise-org-agenda-cache-clear ()
+  (interactive)
+  (setq moonrise-org-agenda-cache nil))
+
+(defun moonrise-org-agenda-cache-key ()
+  (let ((d org-agenda-current-date))
+    (intern (format "%04d%02d%02d" (nth 2 d) (nth 0 d) (nth 1 d)))))
+
+(defun moonrise-org-agenda-cache-get (key)
+  (cdr (assq key moonrise-org-agenda-cache)))
+
+(defun moonrise-org-agenda-cache-put (key str)
+  (push (cons key str) moonrise-org-agenda-cache)
+  str)
 
 (provide 'moonrise)
 ;;; moonrise.el ends here
