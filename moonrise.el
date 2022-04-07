@@ -567,12 +567,12 @@
          (radius (* 0.48 size))
          ;; number of divisions
          (ndiv 32)
-         (2pi/ndiv (* 2.0 (/ pi ndiv)))
+         (2pi/ndiv (* 2.0 (/ float-pi ndiv)))
          ;; degrees to radians
-         (phase-rad (* 2.0 pi (/ (mod phase 360.0) 360.0)))
+         (phase-rad (* 2.0 float-pi (/ (mod phase 360.0) 360.0)))
          ;; left and right sides of sunlit portion
-         (right-edge (if (<= phase-rad pi) 1.0 (- (cos phase-rad))))
-         (left-edge (if (>= phase-rad pi) 1.0 (- (cos phase-rad)))))
+         (right-edge (if (<= phase-rad float-pi) 1.0 (- (cos phase-rad))))
+         (left-edge (if (>= phase-rad float-pi) 1.0 (- (cos phase-rad)))))
     ;; entire of moon
     (svg-circle svg cx cy radius :fill (or shadow "#000"))
     ;; sunlit portion
@@ -693,13 +693,13 @@ Accurate to a few seconds."
                 (moonrise-moonset-string date) "\n")))))
 
 ;; for diary
-;;(with-no-warnings (defvar date))
 ;;;###diary-autoload
 (defun diary-moonrise-moonset ()
   "Local time of moonrise and moonset as a diary entry.
 Accurate to a few seconds."
   (or (and calendar-latitude calendar-longitude calendar-time-zone)
       (solar-setup))
+  (with-no-warnings (defvar date))
   (moonrise-moonset-string date))
 
 ;; for org-agenda
