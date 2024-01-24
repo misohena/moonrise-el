@@ -656,7 +656,7 @@
 
 ;; for calendar
 
-;;;###cal-autoload
+;;;###autoload
 (defun calendar-moonrise-moonset (&optional event)
   "Local time of moonrise and moonset for date under cursor.
 Accurate to a few seconds."
@@ -671,7 +671,7 @@ Accurate to a few seconds."
 (defconst moonrise-moonrises-buffer "*Moonrise/Moonset Times*"
   "Name of buffer used for moonrise/moonset times.")
 
-;;;###cal-autoload
+;;;###autoload
 (defun calendar-moonrise-moonset-month (&optional event)
   "Local time of moonrise and moonset for month under cursor or at EVENT."
   (interactive (list last-nonmenu-event))
@@ -693,7 +693,7 @@ Accurate to a few seconds."
                 (moonrise-moonset-string date) "\n")))))
 
 ;; for diary
-;;;###diary-autoload
+;;;###autoload
 (defun diary-moonrise-moonset ()
   "Local time of moonrise and moonset as a diary entry.
 Accurate to a few seconds."
@@ -710,6 +710,7 @@ Accurate to a few seconds."
 
 (with-no-warnings (defvar org-agenda-current-date))
 
+;;;###autoload
 (defun moonrise-org-agenda ()
   (if moonrise-org-agenda-use-cache
       (let ((key (moonrise-org-agenda-cache-key)))
