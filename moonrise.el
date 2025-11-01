@@ -90,7 +90,7 @@
 
 (defcustom moonrise-moon-phase-display-points-org-agenda
   '(rise)
-  "List of points display moon phase for org-phasenda."
+  "List of points display moon phase for org-agenda."
   :type '(list symbol)
   :group 'calendar)
 
