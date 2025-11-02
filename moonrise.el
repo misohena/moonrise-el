@@ -323,8 +323,8 @@
   (let* ((frac (mod (- jd2000 0.5) 1.0))
          (date (calendar-gregorian-from-absolute
                 (floor (+ (calendar-absolute-from-gregorian '(1 1.5 2000)) jd2000)))))
-    (if (not (= frac 0))
-        (cl-incf (cadr date) frac))
+    (unless (= frac 0)
+      (cl-incf (cadr date) frac))
     date))
 
 ;; Calendar Date in Local Time
@@ -350,23 +350,23 @@
 ;; Emacs Time
 
 (defun moonrise-time-from-jd2000 (jd2000)
-  (if jd2000
-      (let* ((jd-date-time (moonrise-jd-to-date-time jd2000))
-             (jd-date (car jd-date-time))
-             (jd-time (cdr jd-date-time)))
-        (encode-time (round (* jd-time 86400)) 0 0
-                     (floor (+ jd-date 1.5)) 1 2000 t))))
+  (when jd2000
+    (let* ((jd-date-time (moonrise-jd-to-date-time jd2000))
+           (jd-date (car jd-date-time))
+           (jd-time (cdr jd-date-time)))
+      (encode-time (round (* jd-time 86400)) 0 0
+                   (floor (+ jd-date 1.5)) 1 2000 t))))
 
 (defun moonrise-jd2000-from-time (time)
-  (if time
-      (let* ((tm (decode-time time t))
-             (sec (nth 0 tm))
-             (min (nth 1 tm))
-             (hour (nth 2 tm))
-             (day (nth 3 tm))
-             (month (nth 4 tm))
-             (year (nth 5 tm)))
-        (moonrise-jd2000-from-utdate (list month day year) hour min sec))))
+  (when time
+    (let* ((tm (decode-time time t))
+           (sec (nth 0 tm))
+           (min (nth 1 tm))
+           (hour (nth 2 tm))
+           (day (nth 3 tm))
+           (month (nth 4 tm))
+           (year (nth 5 tm)))
+      (moonrise-jd2000-from-utdate (list month day year) hour min sec))))
 
 ;; Utilities
 
@@ -406,10 +406,10 @@
 
 (defun moonrise-around (jd2000 &optional target-point long lat height)
   "Find the time when moon passes TARGET-POINT before or after JD2000."
-  (if (null target-point) (setq target-point 'rise))
-  (if (null long) (setq long (calendar-longitude)))
-  (if (null lat) (setq lat (calendar-latitude)))
-  (if (null height) (setq height 0))
+  (unless target-point (setq target-point 'rise))
+  (unless long (setq long (calendar-longitude)))
+  (unless lat (setq lat (calendar-latitude)))
+  (unless height (setq height 0))
 
   (let* ((jd0 jd2000)
          (et (solar-ephemeris-correction (caddr (moonrise-utdate-from-jd2000 jd0))))
@@ -455,16 +455,16 @@
 
 (defun moonrise-in-day (day-begin-jd2000 &optional target-point long lat height)
   (let ((jdp (moonrise-around (+ day-begin-jd2000 0.5) target-point long lat height)))
-    (if (and (>= jdp day-begin-jd2000) (< jdp (+ day-begin-jd2000 1.0)))
-        jdp)))
+    (when (and (>= jdp day-begin-jd2000) (< jdp (+ day-begin-jd2000 1.0)))
+      jdp)))
 
 (defun moonrise-list (begin-jd2000 end-jd2000 &optional target-point long lat height)
   (let ((jd begin-jd2000)
         results)
     (while (< jd end-jd2000)
       (let ((jdp (moonrise-in-day jd target-point long lat height)))
-        (if (and jdp (not (and results (< (abs (- (car results) jdp)) 1e-6))))
-            (push jdp results)))
+        (when (and jdp (not (and results (< (abs (- (car results) jdp)) 1e-6))))
+          (push jdp results)))
       (setq jd (+ jd 1.0)))
     (nreverse results)))
 
@@ -609,29 +609,37 @@
     (funcall moonrise-moon-phase-format phase))))
 
 (defun moonrise-time-string (time)
-  (if time
-      (let* ((tm (decode-time time (* calendar-time-zone 60)))
-             (min (nth 1 tm))
-             (hour (nth 2 tm)))
-        (solar-time-string (+ hour (/ min 60.0)) calendar-standard-time-zone-name))))
+  (when time
+    ;; TODO: Support DST?
+    (let* ((tm (decode-time time (* calendar-time-zone 60)))
+           (min (nth 1 tm))
+           (hour (nth 2 tm)))
+      (solar-time-string (+ hour (/ min 60.0))
+                         calendar-standard-time-zone-name))))
 
 (defun moonrise-time-and-point-string (time target-point moon-age-p &optional moon-phase-p)
-  (if time
-      (concat
-       (moonrise-point-name target-point)
-       " "
-       (moonrise-time-string time)
+  (when time
+    ;; TODO: Add format customization variable
+    (concat
+     (moonrise-point-name target-point)
+     " "
+     (moonrise-time-string time)
 
-       (if moon-age-p
-           (moonrise-moon-age-string (moonrise-moon-age (moonrise-jd2000-from-time time))))
+     (when moon-age-p
+       (moonrise-moon-age-string
+        (moonrise-moon-age (moonrise-jd2000-from-time time))))
 
-       (if moon-phase-p
-           (moonrise-moon-phase-string (moonrise-moon-phase (moonrise-jd2000-from-time time)))))))
+     (when moon-phase-p
+       (moonrise-moon-phase-string
+        (moonrise-moon-phase (moonrise-jd2000-from-time time)))))))
 
 (defun moonrise-moonset-string (local-date  &optional separator display-points moon-age-display-points moon-phase-display-points)
-  (if (null display-points) (setq display-points moonrise-display-points))
-  (if (null moon-age-display-points) (setq moon-age-display-points moonrise-moon-age-display-points))
-  (if (null moon-phase-display-points) (setq moon-phase-display-points moonrise-moon-phase-display-points))
+  (unless display-points
+    (setq display-points moonrise-display-points))
+  (unless moon-age-display-points
+    (setq moon-age-display-points moonrise-moon-age-display-points))
+  (unless moon-phase-display-points
+    (setq moon-phase-display-points moonrise-moon-phase-display-points))
 
   (let ((day-begin (moonrise-jd2000-from-local-date local-date)))
     (mapconcat
@@ -645,7 +653,7 @@
       (delq nil
             (mapcar (lambda (target-point)
                       (let ((jd (moonrise-in-day day-begin target-point)))
-                        (if jd (cons jd target-point))))
+                        (when jd (cons jd target-point))))
                     display-points))
       (lambda (jdtp1 jdtp2) (< (car jdtp1) (car jdtp2))))
      (or separator ", "))))
