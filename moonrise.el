@@ -106,18 +106,22 @@
 
 
 (defun moonrise-normalize-degrees (deg)
+  "Normalize DEG to the range [0, 360)."
   (mod deg 360))
 
 (defun moonrise-normalize-degrees-180+180 (deg)
+  "Normalize DEG to the range (-180, 180]."
   (let ((nd (mod deg 360)))
     (if (> nd 180)
         (+ nd -360)
       nd)))
 
 (defun moonrise-sin (deg)
+  "Return the sine of DEG degrees."
   (sin (degrees-to-radians (mod deg 360.0))))
 
 (defun moonrise-cos (deg)
+  "Return the cosine of DEG degrees."
   (cos (degrees-to-radians (mod deg 360.0))))
 
 
@@ -319,6 +323,10 @@
 ;;;;; Calendar Date in Universal Time
 
 (defun moonrise-jd2000-from-utdate (date &optional hour min sec)
+  "Convert calendar DATE in UT to JD2000.
+
+DATE is a calendar date (month day year) in Universal Time.
+Optional HOUR, MIN, and SEC specify the time of day."
   (+ (- (calendar-absolute-from-gregorian date)
         (calendar-absolute-from-gregorian '(1 1.5 2000)))
      (if hour (/ hour 24.0) 0)
@@ -326,6 +334,10 @@
      (if sec (/ sec 86400.0) 0))) ;;24*60*60=86400
 
 (defun moonrise-utdate-from-jd2000 (jd2000)
+  "Convert JD2000 to a calendar date in Universal Time.
+
+Return a calendar date (month day year) where day may include a
+fractional part."
   (let* ((frac (mod (- jd2000 0.5) 1.0))
          (date (calendar-gregorian-from-absolute
                 (floor (+ (calendar-absolute-from-gregorian '(1 1.5 2000)) jd2000)))))
@@ -336,19 +348,28 @@
 ;;;;; Calendar Date in Local Time
 
 (defun moonrise-jd2000-from-local-date (date)
+  "Convert local calendar DATE to JD2000.
+
+DATE is a calendar date (month day year) in local time."
   (moonrise-jd2000-from-utdate date nil (- calendar-time-zone)))
 
 (defun moonrise-local-date-from-jd2000 (jd2000)
+  "Convert JD2000 to a calendar date in local time.
+
+Return a calendar date (month day year) where day may include a
+fractional part."
   (moonrise-utdate-from-jd2000 (+ jd2000 (/ calendar-time-zone (* 24 60.0)))))
 
 ;;;;; Astronomical Julian Day
 
 (defun moonrise-jd2000-from-local-astro (astro)
+  "Convert astronomical Julian Day ASTRO to JD2000 in local time."
   (- astro
      2451545.0
      (/ calendar-time-zone (* 60.0 24.0))))
 
 (defun moonrise-local-astro-from-jd2000 (jd2000)
+  "Convert JD2000 to astronomical Julian Day in local time."
   (+ jd2000
      2451545.0
      (/ calendar-time-zone (* 60.0 24.0))))
@@ -356,6 +377,9 @@
 ;;;;; Emacs Time
 
 (defun moonrise-time-from-jd2000 (jd2000)
+  "Convert JD2000 to an Emacs Lisp timestamp.
+
+Return nil if JD2000 is nil."
   (when jd2000
     (let* ((jd-date-time (moonrise-jd-to-date-time jd2000))
            (jd-date (car jd-date-time))
@@ -364,6 +388,9 @@
                    (floor (+ jd-date 1.5)) 1 2000 t))))
 
 (defun moonrise-jd2000-from-time (time)
+  "Convert Emacs Lisp timestamp TIME to JD2000.
+
+Return nil if TIME is nil."
   (when time
     (let* ((tm (decode-time time t))
            (sec (nth 0 tm))
@@ -377,27 +404,39 @@
 ;;;;; Utilities
 
 (defun moonrise-floor-date (date)
-  "Discard fraction part of calendar DATE."
+  "Discard fractional part of calendar DATE.
+
+DATE is a calendar date (month day year) where day may be fractional.
+Return a calendar date with integer components."
   (list (floor (car date)) (floor (cadr date)) (floor (caddr date))))
 
 (defun moonrise-jd-to-date-time (jd)
-  "Divide julian day JD into a julian day and a fraction part."
+  "Split Julian Day JD into date and time parts.
+
+Return a cons cell (DATE . TIME) where DATE is the integer day part
+and TIME is the fractional day part in the range [0, 1)."
   (let* ((date-part (- (floor (+ jd 0.5)) 0.5))
          (time-part (- jd date-part)))
     (cons date-part time-part)))
 
 (defun moonrise-jd-to-jc (jd)
+  "Convert Julian Day JD to Julian centuries."
   (/ jd 36525.0))
 
 (defun moonrise-jd-to-jy (jd)
+  "Convert Julian Day JD to Julian years."
   (/ jd 365.25))
 
 (defun moonrise-jy-to-jd (jy)
+  "Convert Julian years JY to Julian Days."
   (* jy 365.25))
 
 ;;;;; Sidereal Time
 
 (defun moonrise-sidereal-time-from-jd2000 (jd2000)
+  "Calculate Greenwich sidereal time in degrees for JD2000.
+
+Return the sidereal time normalized to the range [0, 360)."
   (let ((jd-date-time (moonrise-jd-to-date-time jd2000)))
     (mod
      (+ (* (solar-sidereal-time (moonrise-jd-to-jc (car jd-date-time))) 15)
@@ -410,7 +449,19 @@
 ;; [長沢99] 5.3
 
 (defun moonrise-around (jd2000 &optional passage-point long lat height)
-  "Find the time when moon passes PASSAGE-POINT before or after JD2000."
+  "Find the time when the moon passes PASSAGE-POINT near JD2000.
+
+PASSAGE-POINT specifies which passage point to find (rise, set, or meridian).
+If nil, default to rise.
+
+LONG and LAT specify the observer's longitude and latitude in degrees.
+If nil, use values from `calendar-longitude' and `calendar-latitude'.
+
+HEIGHT specifies the observer's height above sea level in meters.
+If nil, use 0.
+
+Return the JD2000 value when the moon passes the specified point,
+which may be before or after the input JD2000."
   (unless passage-point (setq passage-point 'rise))
   (unless long (setq long (calendar-longitude)))
   (unless lat (setq lat (calendar-latitude)))
@@ -459,11 +510,24 @@
     (+ jd2000 d)))
 
 (defun moonrise-in-day (day-begin-jd2000 &optional passage-point long lat height)
+  "Find the time when the moon passes PASSAGE-POINT within a specific day.
+
+DAY-BEGIN-JD2000 specifies the start of the day.
+PASSAGE-POINT, LONG, LAT, and HEIGHT are as in `moonrise-around'.
+
+Return the JD2000 value if the passage occurs within the 24-hour period
+starting from DAY-BEGIN-JD2000, or nil if it does not occur within that day."
   (let ((jdp (moonrise-around (+ day-begin-jd2000 0.5) passage-point long lat height)))
     (when (and (>= jdp day-begin-jd2000) (< jdp (+ day-begin-jd2000 1.0)))
       jdp)))
 
 (defun moonrise-list (begin-jd2000 end-jd2000 &optional passage-point long lat height)
+  "Return a list of times when the moon passes PASSAGE-POINT in a date range.
+
+BEGIN-JD2000 and END-JD2000 specify the start and end of the range.
+PASSAGE-POINT, LONG, LAT, and HEIGHT are as in `moonrise-around'.
+
+Return a list of JD2000 values in chronological order."
   (let ((jd begin-jd2000)
         results)
     (while (< jd end-jd2000)
@@ -497,6 +561,10 @@
 ;; [長沢99] 5.6
 
 (defun moonrise-moon-age (jd2000)
+  "Calculate the moon's age in days at JD2000.
+
+The moon age is the number of days since the last new moon.
+Return a floating-point number representing the age in days."
   (let* ((jd0 jd2000)
          (et (solar-ephemeris-correction (caddr (moonrise-utdate-from-jd2000 jd0))))
          (jd jd0)
@@ -531,6 +599,14 @@
 
 
 (defun moonrise-moon-phase (jd2000)
+  "Calculate the moon's phase in degrees at JD2000.
+
+The phase is the ecliptic longitude difference between the moon and sun.
+Return a value in degrees in the range [0, 360), where:
+  0° = New Moon
+  90° = First Quarter
+  180° = Full Moon
+  270° = Last Quarter"
   (let* ((et (solar-ephemeris-correction (caddr (moonrise-utdate-from-jd2000 jd2000))))
          (solar-long (solar-longitude (moonrise-local-astro-from-jd2000 jd2000)))
          (lunar-long (moonrise-normalize-degrees
@@ -543,9 +619,24 @@
 ;;(moonrise-moon-phase (moonrise-jd2000-from-time (encode-time 0 37 11 24 7 2021))) => 180.???
 
 (defun moonrise-moon-phase-format-default (phase)
+  "Format PHASE as a graphical moon image or text.
+
+PHASE is the moon phase in degrees.
+Return a string with a display property showing the moon's appearance,
+or a text representation if graphical display is unavailable."
   (concat " " (moonrise-moon-phase-svg-image-string phase (1- (default-font-height)))))
 
 (defun moonrise-moon-phase-svg-image-string (phase size &optional ascent light shadow)
+  "Create a string displaying the moon phase as an SVG image.
+
+PHASE is the moon phase in degrees.
+SIZE is the image size in pixels.
+ASCENT specifies vertical alignment (default: center).
+LIGHT and SHADOW are colors for sunlit and dark portions (default: #ffc
+and #000).
+
+Return a string with a display property containing the SVG image,
+or a text representation if SVG is unavailable."
   (let ((str (format "%.2f[deg]" phase)))
     (if (and
          (featurep 'image)
@@ -558,11 +649,26 @@
       str)))
 
 (defun moonrise-moon-phase-svg-image (phase size &optional ascent light shadow)
+  "Create an SVG image object showing the moon phase.
+
+PHASE is the moon phase in degrees.
+SIZE is the image size in pixels.
+ASCENT, LIGHT, and SHADOW are as in `moonrise-moon-phase-svg-image-string'.
+
+Return an image object suitable for display properties."
   (svg-image
    (moonrise-moon-phase-svg phase size light shadow)
    :ascent (or ascent 'center)))
 
 (defun moonrise-moon-phase-svg (phase size &optional light shadow)
+  "Create an SVG object showing the moon phase.
+
+PHASE is the moon phase in degrees.
+SIZE is the image size in pixels.
+LIGHT is the color for the sunlit portion (default: #ffc).
+SHADOW is the color for the dark portion (default: #000).
+
+Return an SVG object."
   (let* ((svg (svg-create size size))
          ;; center and radius
          (cx (* 0.5 size))
@@ -594,9 +700,14 @@
 
 
 (defun moonrise-point-name (passage-point)
+  "Return the display name for PASSAGE-POINT.
+
+The name is looked up in `moonrise-point-name-alist'.
+If PASSAGE-POINT is not found, return an empty string."
   (or (cdr (assq passage-point moonrise-point-name-alist)) ""))
 
 (defun moonrise-moon-age-string (age)
+  "Format AGE according to `moonrise-moon-age-format'."
   (cond
    ((stringp moonrise-moon-age-format)
     (format moonrise-moon-age-format age))
@@ -604,6 +715,7 @@
     (funcall moonrise-moon-age-format age))))
 
 (defun moonrise-moon-phase-string (phase)
+  "Format PHASE according to `moonrise-moon-phase-format'."
   (cond
    ((stringp moonrise-moon-phase-format)
     (format moonrise-moon-phase-format phase))
@@ -611,6 +723,11 @@
     (funcall moonrise-moon-phase-format phase))))
 
 (defun moonrise-time-string (time)
+  "Convert TIME to a time string showing hours and minutes only.
+
+TIME should be a Lisp timestamp.
+The string is formatted according to `calendar-time-display-form'.
+Return nil if TIME is nil."
   (when time
     ;; TODO: Support DST?
     (let* ((tm (decode-time time (* calendar-time-zone 60)))
@@ -620,6 +737,11 @@
                          calendar-standard-time-zone-name))))
 
 (defun moonrise-time-and-point-string (time passage-point moon-age-p &optional moon-phase-p)
+  "Format a display string for the moon event at PASSAGE-POINT.
+The string includes the position point name and TIME.
+If MOON-AGE-P is non-nil, append the moon age.
+If MOON-PHASE-P is non-nil, append the moon phase.
+Return nil if TIME is nil."
   (when time
     ;; TODO: Add format customization variable
     (concat
@@ -636,6 +758,18 @@
         (moonrise-moon-phase (moonrise-jd2000-from-time time)))))))
 
 (defun moonrise-moonset-string (local-date  &optional separator display-points moon-age-display-points moon-phase-display-points)
+  "Format a string of moon passage point events for LOCAL-DATE.
+
+DISPLAY-POINTS specifies which passage points to include.
+If nil, use `moonrise-display-points'.
+
+MOON-AGE-DISPLAY-POINTS and MOON-PHASE-DISPLAY-POINTS specify
+which passage points should include moon age and phase information.
+If nil, use `moonrise-moon-age-display-points' and
+`moonrise-moon-phase-display-points' respectively.
+
+SEPARATOR is the string used to separate multiple events.
+If nil, use \", \"."
   (unless display-points
     (setq display-points moonrise-display-points))
   (unless moon-age-display-points
