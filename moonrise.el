@@ -32,9 +32,8 @@
 (require 'solar)
 (require 'svg)
 
-;;
-;; Settings
-;;
+;;;; Customization
+
 (defcustom moonrise-point-name-alist
   '((rise . "Moonrise")
     (set . "Moonset")
@@ -95,9 +94,8 @@
   :group 'calendar)
 
 
-;;
-;; Math Utilities
-;;
+;;;; Math Utilities
+
 
 (defun moonrise-normalize-degrees (deg)
   (mod deg 360))
@@ -114,8 +112,9 @@
 (defun moonrise-cos (deg)
   (cos (degrees-to-radians (mod deg 360.0))))
 
-;;
-;; Calculate Moon Position
+
+;;;; Moon Position Calculation
+
 ;;
 ;; see: [長沢99] 5.4 表によらない月位置
 ;;
@@ -302,15 +301,14 @@
        (radians-to-degrees (atan w (sqrt (+ (* u u) (* v v))))))))
 
 
-;;
-;; Time Conversion
-;;
+;;;; Time Conversion
+
 ;; - jd2000 : Julian Days from J2000.0
 ;; - local-date : calendar date in Local Time
 ;; - utdate : calendar date in Universal Time
 ;; - time : emacs time
 
-;; Calendar Date in Universal Time
+;;;;; Calendar Date in Universal Time
 
 (defun moonrise-jd2000-from-utdate (date &optional hour min sec)
   (+ (- (calendar-absolute-from-gregorian date)
@@ -327,7 +325,7 @@
       (cl-incf (cadr date) frac))
     date))
 
-;; Calendar Date in Local Time
+;;;;; Calendar Date in Local Time
 
 (defun moonrise-jd2000-from-local-date (date)
   (moonrise-jd2000-from-utdate date nil (- calendar-time-zone)))
@@ -335,7 +333,7 @@
 (defun moonrise-local-date-from-jd2000 (jd2000)
   (moonrise-utdate-from-jd2000 (+ jd2000 (/ calendar-time-zone (* 24 60.0)))))
 
-;; Astronomical Julian Day
+;;;;; Astronomical Julian Day
 
 (defun moonrise-jd2000-from-local-astro (astro)
   (- astro
@@ -347,7 +345,7 @@
      2451545.0
      (/ calendar-time-zone (* 60.0 24.0))))
 
-;; Emacs Time
+;;;;; Emacs Time
 
 (defun moonrise-time-from-jd2000 (jd2000)
   (when jd2000
@@ -368,7 +366,7 @@
            (year (nth 5 tm)))
       (moonrise-jd2000-from-utdate (list month day year) hour min sec))))
 
-;; Utilities
+;;;;; Utilities
 
 (defun moonrise-floor-date (date)
   "Discard fraction part of calendar DATE."
@@ -389,7 +387,7 @@
 (defun moonrise-jy-to-jd (jy)
   (* jy 365.25))
 
-;; Sidereal Time
+;;;;; Sidereal Time
 
 (defun moonrise-sidereal-time-from-jd2000 (jd2000)
   (let ((jd-date-time (moonrise-jd-to-date-time jd2000)))
@@ -399,9 +397,8 @@
      360)))
 
 
-;;
-;; Time Finding
-;;
+;;;; Time Finding
+
 ;; [長沢99] 5.3
 
 (defun moonrise-around (jd2000 &optional target-point long lat height)
@@ -487,9 +484,8 @@
 ;;  "\n")
 
 
-;;
-;; Moon's Age
-;;
+;;;; Moon Age
+
 ;; [長沢99] 5.6
 
 (defun moonrise-moon-age (jd2000)
@@ -523,9 +519,8 @@
 ;;(moonrise-moon-age (moonrise-jd2000-from-time (encode-time 0 0 8 25 6 2020)))
 
 
-;;
-;; Moon Phase
-;;
+;;;; Moon Phase
+
 
 (defun moonrise-moon-phase (jd2000)
   (let* ((et (solar-ephemeris-correction (caddr (moonrise-utdate-from-jd2000 jd2000))))
@@ -587,9 +582,8 @@
     svg))
 
 
-;;
-;; Formatting
-;;
+;;;; String Formatting
+
 
 (defun moonrise-point-name (target-point)
   (or (cdr (assq target-point moonrise-point-name-alist)) ""))
@@ -658,11 +652,10 @@
       (lambda (jdtp1 jdtp2) (< (car jdtp1) (car jdtp2))))
      (or separator ", "))))
 
-;;
-;; for calendar, diary, org-mode
-;;
 
-;; for calendar
+;;;; For other packages
+
+;;;;; For calendar.el
 
 ;;;###autoload
 (defun calendar-moonrise-moonset (&optional event)
@@ -700,7 +693,8 @@ Accurate to a few seconds."
         (insert (format "%s %2d: " (calendar-month-name month t) (1+ i))
                 (moonrise-moonset-string date) "\n")))))
 
-;; for diary
+;;;;; For diary.el
+
 ;;;###autoload
 (defun diary-moonrise-moonset ()
   "Local time of moonrise and moonset as a diary entry.
@@ -710,7 +704,7 @@ Accurate to a few seconds."
   (with-no-warnings (defvar date))
   (moonrise-moonset-string date))
 
-;; for org-agenda
+;;;;; For org-agenda.el
 
 (defcustom moonrise-org-agenda-use-cache nil ""
   :type 'boolean
