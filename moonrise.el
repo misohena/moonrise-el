@@ -51,35 +51,112 @@
           :value-type (string :tag "Value"))
   :group 'moonrise)
 
-(defcustom moonrise-display-points
-  '(rise meridian set)
-  "List of moon passage points to display."
-  :type '(set (const rise) (const meridian) (const set))
+(define-obsolete-variable-alias
+  'moonrise-display-points
+  'moonrise-day-events-format
+  "2025-11-02")
+(defcustom moonrise-day-events-format
+  '(rise (meridian :display-moon-age t :display-moon-phase t) set)
+  "Format for the events portion of a day's moon information display.
+
+This format is used by `moonrise-day-events-string' and
+`moonrise-day-events-list'.
+
+List of moon passage points and time specifications to display.
+Each element can be:
+  - A symbol: rise, meridian, or set
+    Display the corresponding passage point event.
+
+  - A cons cell: (TYPE . OPTIONS-PLIST)
+    TYPE can be rise, meridian, set, or time.
+
+    When TYPE is time, available options:
+      :hour INTEGER      - Hour (0-23, default 0)
+      :minute INTEGER    - Minute (0-59, default 0)
+      :second INTEGER    - Second (0-59, default 0)
+
+    Common options for all types:
+      :preceding BOOL    - If non-nil, display before sorted events
+      :last BOOL         - If non-nil, display after sorted events
+      :display-point-name BOOL   - Whether to show passage point name
+      :display-time BOOL         - Whether to show time
+      :display-moon-age BOOL     - Whether to show moon age
+      :display-moon-phase BOOL   - Whether to show moon phase
+
+Examples:
+  rise                  ; Simple moonrise event
+  (rise)                ; Same as above
+  (time :hour 12)       ; Moon state at noon
+  (time :hour 12 :preceding t)  ; Moon state at noon, shown first"
+  :type '(repeat
+          (choice
+           (const rise)
+           (const meridian)
+           (const set)
+           (cons (choice
+                  (const rise)
+                  (const meridian)
+                  (const set)
+                  (const time))
+                 (plist
+                  :key-type (choice (const :tag "Hour(0-23)" :hour)
+                                    (const :tag "Minute(0-59)" :minute)
+                                    (const :tag "Second(0-59)" :second)
+                                    (const :tag "Preceding(Bool)" :preceding)
+                                    (const :tag "Last(Bool)" :last)
+                                    (const :tag "Display Point Name(Bool)"
+                                           :display-point-name)
+                                    (const :tag "Display Time(Bool)"
+                                           :display-time)
+                                    (const :tag "Display Moon Age(Bool)"
+                                           :display-moon-age)
+                                    (const :tag "Display Moon Phase(Bool)"
+                                           :display-moon-phase))
+                  :value-type sexp))))
   :group 'moonrise)
 
-(defcustom moonrise-display-points-org-agenda
-  '(rise set)
-  "List of moon passage points to display in Org Agenda."
-  :type '(set (const rise) (const meridian) (const set))
+(define-obsolete-variable-alias
+  'moonrise-display-points-org-agenda
+  'moonrise-day-events-format-org-agenda
+  "2025-11-02")
+(defcustom moonrise-day-events-format-org-agenda
+  '((rise :display-moon-age t :display-moon-phase t) set)
+  "Format for the events portion of moon information display in Org Agenda.
+
+The format is the same as `moonrise-day-events-format'.
+See that variable for detailed documentation on available options."
+  :type '(repeat
+          (choice
+           (const rise)
+           (const meridian)
+           (const set)
+           (cons (choice
+                  (const rise)
+                  (const meridian)
+                  (const set)
+                  (const time))
+                 (plist
+                  :key-type (choice (const :tag "Hour(0-23)" :hour)
+                                    (const :tag "Minute(0-59)" :minute)
+                                    (const :tag "Second(0-59)" :second)
+                                    (const :tag "Preceding(Bool)" :preceding)
+                                    (const :tag "Last(Bool)" :last)
+                                    (const :tag "Display Point Name(Bool)"
+                                           :display-point-name)
+                                    (const :tag "Display Time(Bool)"
+                                           :display-time)
+                                    (const :tag "Display Moon Age(Bool)"
+                                           :display-moon-age)
+                                    (const :tag "Display Moon Phase(Bool)"
+                                           :display-moon-phase))
+                  :value-type sexp))))
   :group 'moonrise)
 
 (defcustom moonrise-moon-age-format
-  " (%.2f)"
+  "(%.2f)"
   "Format for displaying the moon age."
   :type '(choice (string :tag "Format string")
                  (function :tag "Formatter"))
-  :group 'moonrise)
-
-(defcustom moonrise-moon-age-display-points
-  '(meridian)
-  "List of moon passage points to display moon age."
-  :type '(set (const rise) (const meridian) (const set))
-  :group 'moonrise)
-
-(defcustom moonrise-moon-age-display-points-org-agenda
-  '(rise)
-  "List of moon passage points to display moon age in Org Agenda."
-  :type '(set (const rise) (const meridian) (const set))
   :group 'moonrise)
 
 (defcustom moonrise-moon-phase-format
@@ -89,16 +166,105 @@
                  (function :tag "Formatter"))
   :group 'moonrise)
 
+(defcustom moonrise-point-event-format
+  '((point-name :separator " ")
+    (time :separator " ")
+    (moon-age :separator " ")
+    (moon-phase :separator " "))
+  "Format for displaying moon point event.
+
+This format is used by `moonrise-format-point-event-string'.
+
+This is a list of components to output.
+Each component is (COMPONENT-TYPE . OPTIONS-PLIST).
+
+COMPONENT-TYPE can be one of the following symbols:
+  point-name  - Name of the passage point (rise, set, meridian)
+  time        - Time when the moon passes the point
+  moon-age    - Age of the moon in days
+  moon-phase  - Phase of the moon (as image or text)
+  FUNCTION    - Custom function called with (passage-point time)
+
+Available options:
+  :separator STRING
+    Separator to output before the component.
+    If the component is not output, the separator is also omitted."
+  :type '(repeat :tag "Components"
+                 (cons :tag "Component"
+                       (choice :tag "Component Type"
+                               (const point-name)
+                               (const time)
+                               (const moon-age)
+                               (const moon-phase)
+                               (symbol))
+                       (plist :tag "Options"
+                              :key-type (choice :tag "Key"
+                                                (const :separator) symbol)
+                              :value-type (choice :tag "Value"
+                                                  string
+                                                  sexp)))))
+
+(make-obsolete-variable
+ 'moonrise-moon-age-display-points
+ "set `:display-moon-age' in `moonrise-day-events-format' instead"
+ "2025-11-02")
+(defcustom moonrise-moon-age-display-points
+  nil
+  "List of moon passage points to display moon age."
+  :type '(set (const rise) (const meridian) (const set))
+  :group 'moonrise)
+
+(make-obsolete-variable
+ 'moonrise-moon-age-display-points-org-agenda
+ "set `:display-moon-age' in `moonrise-day-events-format-org-agenda' instead"
+ "2025-11-02")
+(defcustom moonrise-moon-age-display-points-org-agenda
+  nil
+  "List of moon passage points to display moon age in Org Agenda."
+  :type '(set (const rise) (const meridian) (const set))
+  :group 'moonrise)
+
+(make-obsolete-variable
+ 'moonrise-moon-phase-display-points
+ "set `:display-moon-phase' in `moonrise-day-events-format' instead"
+ "2025-11-02")
 (defcustom moonrise-moon-phase-display-points
-  '(meridian)
+  nil
   "List of moon passage points to display moon phase."
   :type '(set (const rise) (const meridian) (const set))
   :group 'moonrise)
 
+(make-obsolete-variable
+ 'moonrise-moon-phase-display-points-org-agenda
+ "set `:display-moon-phase' in `moonrise-day-events-format-org-agenda' instead"
+ "2025-11-02")
 (defcustom moonrise-moon-phase-display-points-org-agenda
-  '(rise)
+  nil
   "List of moon passage points to display moon phase in Org Agenda."
   :type '(set (const rise) (const meridian) (const set))
+  :group 'moonrise)
+
+(defcustom moonrise-org-agenda-event-separator "; "
+  "Separator string between moon events in Org Agenda."
+  :type 'string
+  :group 'moonrise)
+
+(defcustom moonrise-org-agenda-format-function
+  #'moonrise-org-agenda-format-default
+  "Function to format moon events for Org Agenda display.
+
+The function is called with `org-agenda-current-date' as the argument
+and should return a string for display.
+
+See `moonrise-org-agenda-format-default' for the default implementation."
+  :type 'function
+  :group 'moonrise)
+
+(defcustom moonrise-org-agenda-use-cache nil
+  "Non-nil means use cached moon data in Org Agenda.
+
+To clear the cache, use the command `moonrise-org-agenda-cache-clear'."
+  :type 'boolean
   :group 'moonrise)
 
 
@@ -640,8 +806,7 @@ Return a value in degrees in the range [0, 360), where:
 PHASE is the moon phase in degrees.
 Return a string with a display property showing the moon's appearance,
 or a text representation if graphical display is unavailable."
-  (concat
-   " " (moonrise-moon-phase-svg-image-string phase (1- (default-font-height)))))
+  (moonrise-moon-phase-svg-image-string phase (1- (default-font-height))))
 
 (defun moonrise-moon-phase-svg-image-string (phase
                                              size
@@ -757,67 +922,142 @@ Return nil if TIME is nil."
       (solar-time-string (+ hour (/ min 60.0))
                          calendar-standard-time-zone-name))))
 
-(defun moonrise-format-point-event-string (passage-point time moon-age-p
-                                                         &optional moon-phase-p)
+(defun moonrise-format-point-event-string (passage-point
+                                           time
+                                           display-point-name-p
+                                           display-time-p
+                                           display-moon-age-p
+                                           display-moon-phase-p)
   "Format a display string for the moon event at PASSAGE-POINT.
-The string includes the position point name and TIME.
-If MOON-AGE-P is non-nil, append the moon age.
-If MOON-PHASE-P is non-nil, append the moon phase.
-Return nil if TIME is nil."
+
+The string format is specified by `moonrise-point-event-format'.
+
+PASSAGE-POINT is the type of event (rise, set, meridian, or time).
+TIME is the Lisp timestamp for the event.
+
+The DISPLAY-* arguments control which components are included:
+  DISPLAY-POINT-NAME-P  - Include the passage point name
+  DISPLAY-TIME-P        - Include the time
+  DISPLAY-MOON-AGE-P    - Include the moon age
+  DISPLAY-MOON-PHASE-P  - Include the moon phase
+
+Return a formatted string, or an empty string if TIME is nil."
   (when time
-    ;; TODO: Add format customization variable
-    (concat
-     (moonrise-point-name passage-point)
-     " "
-     (moonrise-time-string time)
+    (let ((result nil))
+      (dolist (component moonrise-point-event-format)
+        (let* ((sym (if (symbolp component)
+                        component
+                      (car component)))
+               (str (pcase sym
+                      ('point-name (when display-point-name-p
+                                     (moonrise-point-name passage-point)))
+                      ('time (when display-time-p
+                               (moonrise-time-string time)))
+                      ('moon-age (when display-moon-age-p
+                                   (moonrise-moon-age-string
+                                    (moonrise-moon-age
+                                     (moonrise-jd2000-from-time time)))))
+                      ('moon-phase (when display-moon-phase-p
+                                     (moonrise-moon-phase-string
+                                      (moonrise-moon-phase
+                                       (moonrise-jd2000-from-time time)))))
+                      ((pred functionp) (funcall sym passage-point time))))
+               (options (when (consp component) (cdr component)))
+               (separator (when result
+                            (or (plist-get options :separator) " "))))
+          (when (and (stringp str) (not (string= str "")))
+            (setq result (concat result separator str)))))
+      (or result ""))))
 
-     (when moon-age-p
-       (moonrise-moon-age-string
-        (moonrise-moon-age (moonrise-jd2000-from-time time))))
+(defun moonrise-day-events-list (local-date display-events)
+  "Generate a list of moon events for LOCAL-DATE.
 
-     (when moon-phase-p
-       (moonrise-moon-phase-string
-        (moonrise-moon-phase (moonrise-jd2000-from-time time)))))))
+DISPLAY-EVENTS specifies which events to include, as described in
+`moonrise-day-events-format'.
+
+Return a list of events, where each event is (JD2000 TYPE OPTIONS).
+Events are ordered according to :preceding and :last options,
+with other events sorted by time."
+  (let ((day-begin (moonrise-jd2000-from-local-date local-date))
+        preceding-events
+        middle-events
+        last-events)
+    (dolist (event-spec display-events)
+      (let* ((type (cond
+                    ((null event-spec) nil)
+                    ((symbolp event-spec) event-spec)
+                    ((consp event-spec) (car event-spec))))
+             (options (cond
+                       ((consp event-spec) (cdr event-spec))))
+             (jd
+              (pcase type
+                ('time
+                 (+ day-begin
+                    (/ (or (plist-get options :hour) 0) 24.0)
+                    (/ (or (plist-get options :minute) 0) (* 24.0 60))
+                    (/ (or (plist-get options :second) 0) (* 24.0 60 60))))
+                ((or 'rise 'meridian 'set)
+                 (moonrise-in-day day-begin type)))))
+        (when jd
+          (let ((event (list jd type options)))
+            (cond
+             ((plist-get options :preceding) (push event preceding-events))
+             ((plist-get options :last) (push event last-events))
+             (t (push event middle-events)))))))
+    (nconc
+     (nreverse preceding-events)
+     (sort
+      (nreverse middle-events)
+      (lambda (jdpp1 jdpp2) (< (car jdpp1) (car jdpp2))))
+     (nreverse last-events))))
 
 (defun moonrise-day-events-string (local-date
-                                   &optional separator display-points
+                                   &optional display-events separator
                                    moon-age-display-points
                                    moon-phase-display-points)
-  "Format a string of moon passage point events for LOCAL-DATE.
+  "Format a string of moon events for LOCAL-DATE.
 
-DISPLAY-POINTS specifies which passage points to include.
-If nil, use `moonrise-display-points'.
+DISPLAY-EVENTS specifies which events to include.
+If nil, use `moonrise-day-events-format'.
 
 MOON-AGE-DISPLAY-POINTS and MOON-PHASE-DISPLAY-POINTS specify
-which passage points should include moon age and phase information.
-If nil, use `moonrise-moon-age-display-points' and
+which passage points should include moon age and phase information
+by default. If nil, use `moonrise-moon-age-display-points' and
 `moonrise-moon-phase-display-points' respectively.
+These can be overridden by :display-moon-age and :display-moon-phase
+options in individual events.
 
 SEPARATOR is the string used to separate multiple events.
 If nil, use \", \"."
-  (unless display-points
-    (setq display-points moonrise-display-points))
+  (unless display-events
+    (setq display-events moonrise-day-events-format))
   (unless moon-age-display-points
     (setq moon-age-display-points moonrise-moon-age-display-points))
   (unless moon-phase-display-points
     (setq moon-phase-display-points moonrise-moon-phase-display-points))
 
-  (let ((day-begin (moonrise-jd2000-from-local-date local-date)))
-    (mapconcat
-     (lambda (jdtp)
+  (mapconcat
+   (lambda (event)
+     (let* ((jd (nth 0 event))
+            (type (nth 1 event))
+            (options (nth 2 event))
+            (display-point-name (plist-member options :display-point-name))
+            (display-time (plist-member options :display-time))
+            (display-moon-age (plist-member options :display-moon-age))
+            (display-moon-phase (plist-member options :display-moon-phase)))
        (moonrise-format-point-event-string
-        (cdr jdtp)
-        (moonrise-time-from-jd2000 (car jdtp))
-        (memq (cdr jdtp) moon-age-display-points)
-        (memq (cdr jdtp) moon-phase-display-points)))
-     (sort
-      (delq nil
-            (mapcar (lambda (passage-point)
-                      (let ((jd (moonrise-in-day day-begin passage-point)))
-                        (when jd (cons jd passage-point))))
-                    display-points))
-      (lambda (jdtp1 jdtp2) (< (car jdtp1) (car jdtp2))))
-     (or separator ", "))))
+        type
+        (moonrise-time-from-jd2000 jd)
+        (if display-point-name (cadr display-point-name) t)
+        (if display-time (cadr display-time) t)
+        (if display-moon-age
+            (cadr display-moon-age)
+          (memq type moon-age-display-points))
+        (if display-moon-phase
+            (cadr display-moon-phase)
+          (memq type moon-phase-display-points)))))
+   (moonrise-day-events-list local-date display-events)
+   (or separator ", ")))
 
 
 ;;;; For other packages
@@ -873,13 +1113,6 @@ Accurate to a few seconds."
 
 ;;;;; For org-agenda.el
 
-(defcustom moonrise-org-agenda-use-cache nil
-  "Non-nil means use cached moon data in Org Agenda.
-
-To clear the cache, use the command `moonrise-org-agenda-cache-clear'."
-  :type 'boolean
-  :group 'moonrise)
-
 (with-no-warnings (defvar org-agenda-current-date))
 
 ;;;###autoload
@@ -900,15 +1133,24 @@ when available to improve performance."
 (defun moonrise-org-agenda-make-string ()
   "Create a moon events string for the current Org Agenda date.
 
-Use settings from `moonrise-display-points-org-agenda',
-`moonrise-moon-age-display-points-org-agenda', and
-`moonrise-moon-phase-display-points-org-agenda'."
+Use the function specified in `moonrise-org-agenda-format-function'."
+  (funcall moonrise-org-agenda-format-function org-agenda-current-date))
+
+(defun moonrise-org-agenda-format-default (date)
+  "Default formatter for moon events in Org Agenda.
+
+DATE is a calendar date (month day year).
+This produces the traditional format with full event names.
+
+Use settings from `moonrise-day-events-format-org-agenda'."
   (moonrise-day-events-string
-   org-agenda-current-date
-   "; "
-   moonrise-display-points-org-agenda
+   date
+   moonrise-day-events-format-org-agenda
+   moonrise-org-agenda-event-separator
    moonrise-moon-age-display-points-org-agenda
    moonrise-moon-phase-display-points-org-agenda))
+
+;; Cache
 
 (defvar moonrise-org-agenda-cache nil
   "Cache for Org Agenda moon event strings.")
