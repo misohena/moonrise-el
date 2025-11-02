@@ -340,7 +340,8 @@ Return a calendar date (month day year) where day may include a
 fractional part."
   (let* ((frac (mod (- jd2000 0.5) 1.0))
          (date (calendar-gregorian-from-absolute
-                (floor (+ (calendar-absolute-from-gregorian '(1 1.5 2000)) jd2000)))))
+                (floor (+ (calendar-absolute-from-gregorian '(1 1.5 2000))
+                          jd2000)))))
     (unless (= frac 0)
       (cl-incf (cadr date) frac))
     date))
@@ -468,8 +469,10 @@ which may be before or after the input JD2000."
   (unless height (setq height 0))
 
   (let* ((jd0 jd2000)
-         (et (solar-ephemeris-correction (caddr (moonrise-utdate-from-jd2000 jd0))))
-         (st0 (moonrise-normalize-degrees (+ (moonrise-sidereal-time-from-jd2000 jd0) long)))
+         (et (solar-ephemeris-correction
+              (caddr (moonrise-utdate-from-jd2000 jd0))))
+         (st0 (moonrise-normalize-degrees
+               (+ (moonrise-sidereal-time-from-jd2000 jd0) long)))
          (horizontal-refraction 0.585556)
          (dip (* 0.0353333333333 (sqrt height)))
          (d 0)
@@ -489,9 +492,12 @@ which may be before or after the input JD2000."
 
              ;; calculate rising or setting point
              (rise-set-altitude (- para horizontal-refraction dip)) ;;k see:p.20
-             (cos-rise-set-hour-angle (/ (- (moonrise-sin rise-set-altitude) (* (moonrise-sin dec) (moonrise-sin lat)))
-                                         (* (moonrise-cos dec) (moonrise-cos lat)))) ;;cos(t_k) see:p.38
-             (rise-set-hour-angle (radians-to-degrees (acos cos-rise-set-hour-angle)))
+             (cos-rise-set-hour-angle
+              (/ (- (moonrise-sin rise-set-altitude)
+                    (* (moonrise-sin dec) (moonrise-sin lat)))
+                 (* (moonrise-cos dec) (moonrise-cos lat)))) ;;cos(t_k) see:p.38
+             (rise-set-hour-angle
+              (radians-to-degrees (acos cos-rise-set-hour-angle)))
 
              ;; target point
              (passage-point-hour-angle ;;-t_k (hour angle of rise or set point)
@@ -501,7 +507,9 @@ which may be before or after the input JD2000."
                (t (- rise-set-hour-angle))))
 
              ;; angle moon to target point
-             (angle-moon-to-target (moonrise-normalize-degrees-180+180 (- passage-point-hour-angle moon-hour-angle))))
+             (angle-moon-to-target
+              (moonrise-normalize-degrees-180+180
+               (- passage-point-hour-angle moon-hour-angle))))
 
         (setq delta-d (/ angle-moon-to-target 347.8))
         ;;(message "d=%f ra=%f dec=%f st=%f para=%f rise-set-alt=%f cos-rise-set-hangle=%f passage-point-hangle=%f moon-hangle=%f delta-angle=%f delta-d=%f" d ra dec st para rise-set-altitude cos-rise-set-hour-angle passage-point-hour-angle moon-hour-angle angle-moon-to-target delta-d)
@@ -509,7 +517,8 @@ which may be before or after the input JD2000."
 
     (+ jd2000 d)))
 
-(defun moonrise-in-day (day-begin-jd2000 &optional passage-point long lat height)
+(defun moonrise-in-day (day-begin-jd2000
+                        &optional passage-point long lat height)
   "Find the time when the moon passes PASSAGE-POINT within a specific day.
 
 DAY-BEGIN-JD2000 specifies the start of the day.
@@ -517,11 +526,14 @@ PASSAGE-POINT, LONG, LAT, and HEIGHT are as in `moonrise-around'.
 
 Return the JD2000 value if the passage occurs within the 24-hour period
 starting from DAY-BEGIN-JD2000, or nil if it does not occur within that day."
-  (let ((jdp (moonrise-around (+ day-begin-jd2000 0.5) passage-point long lat height)))
+  (let ((jdp (moonrise-around (+ day-begin-jd2000 0.5)
+                              passage-point long lat height)))
     (when (and (>= jdp day-begin-jd2000) (< jdp (+ day-begin-jd2000 1.0)))
       jdp)))
 
-(defun moonrise-list (begin-jd2000 end-jd2000 &optional passage-point long lat height)
+(defun moonrise-list (begin-jd2000
+                      end-jd2000
+                      &optional passage-point long lat height)
   "Return a list of times when the moon passes PASSAGE-POINT in a date range.
 
 BEGIN-JD2000 and END-JD2000 specify the start and end of the range.
@@ -566,13 +578,15 @@ Return a list of JD2000 values in chronological order."
 The moon age is the number of days since the last new moon.
 Return a floating-point number representing the age in days."
   (let* ((jd0 jd2000)
-         (et (solar-ephemeris-correction (caddr (moonrise-utdate-from-jd2000 jd0))))
+         (et (solar-ephemeris-correction
+              (caddr (moonrise-utdate-from-jd2000 jd0))))
          (jd jd0)
          (delta-long 1)
          (num-iter 0))
 
     (while (>= (abs delta-long) 0.05)
-      (let* ((solar-long (solar-longitude (moonrise-local-astro-from-jd2000 jd)))
+      (let* ((solar-long (solar-longitude
+                          (moonrise-local-astro-from-jd2000 jd)))
              (lunar-long (moonrise-normalize-degrees
                           (moonrise-ecliptic-longitude
                            (moonrise-jd-to-jy (+ jd et)))))
@@ -607,8 +621,10 @@ Return a value in degrees in the range [0, 360), where:
   90° = First Quarter
   180° = Full Moon
   270° = Last Quarter"
-  (let* ((et (solar-ephemeris-correction (caddr (moonrise-utdate-from-jd2000 jd2000))))
-         (solar-long (solar-longitude (moonrise-local-astro-from-jd2000 jd2000)))
+  (let* ((et (solar-ephemeris-correction
+              (caddr (moonrise-utdate-from-jd2000 jd2000))))
+         (solar-long (solar-longitude
+                      (moonrise-local-astro-from-jd2000 jd2000)))
          (lunar-long (moonrise-normalize-degrees
                       (moonrise-ecliptic-longitude
                        (moonrise-jd-to-jy (+ jd2000 et)))))
@@ -624,9 +640,12 @@ Return a value in degrees in the range [0, 360), where:
 PHASE is the moon phase in degrees.
 Return a string with a display property showing the moon's appearance,
 or a text representation if graphical display is unavailable."
-  (concat " " (moonrise-moon-phase-svg-image-string phase (1- (default-font-height)))))
+  (concat
+   " " (moonrise-moon-phase-svg-image-string phase (1- (default-font-height)))))
 
-(defun moonrise-moon-phase-svg-image-string (phase size &optional ascent light shadow)
+(defun moonrise-moon-phase-svg-image-string (phase
+                                             size
+                                             &optional ascent light shadow)
   "Create a string displaying the moon phase as an SVG image.
 
 PHASE is the moon phase in degrees.
@@ -644,8 +663,10 @@ or a text representation if SVG is unavailable."
          (display-graphic-p)
          (fboundp 'image-type-available-p)
          (image-type-available-p 'svg))
-        (propertize str
-                    'display (moonrise-moon-phase-svg-image phase size ascent light shadow))
+        (propertize
+         str
+         'display
+         (moonrise-moon-phase-svg-image phase size ascent light shadow))
       str)))
 
 (defun moonrise-moon-phase-svg-image (phase size &optional ascent light shadow)
