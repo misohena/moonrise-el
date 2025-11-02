@@ -437,7 +437,7 @@
              ;; target point
              (target-point-hour-angle ;;-t_k (hour angle of rise or set point)
               (cond
-               ((eq target-point 'meridian) 0) ;;@todo do not calculate rise-set-hour-angle
+               ((eq target-point 'meridian) 0) ;;TODO: do not calculate rise-set-hour-angle
                ((eq target-point 'set) rise-set-hour-angle)
                (t (- rise-set-hour-angle))))
 
