@@ -409,9 +409,9 @@
 
 ;; [長沢99] 5.3
 
-(defun moonrise-around (jd2000 &optional target-point long lat height)
-  "Find the time when moon passes TARGET-POINT before or after JD2000."
-  (unless target-point (setq target-point 'rise))
+(defun moonrise-around (jd2000 &optional passage-point long lat height)
+  "Find the time when moon passes PASSAGE-POINT before or after JD2000."
+  (unless passage-point (setq passage-point 'rise))
   (unless long (setq long (calendar-longitude)))
   (unless lat (setq lat (calendar-latitude)))
   (unless height (setq height 0))
@@ -443,31 +443,31 @@
              (rise-set-hour-angle (radians-to-degrees (acos cos-rise-set-hour-angle)))
 
              ;; target point
-             (target-point-hour-angle ;;-t_k (hour angle of rise or set point)
+             (passage-point-hour-angle ;;-t_k (hour angle of rise or set point)
               (cond
-               ((eq target-point 'meridian) 0) ;;TODO: do not calculate rise-set-hour-angle
-               ((eq target-point 'set) rise-set-hour-angle)
+               ((eq passage-point 'meridian) 0) ;;TODO: do not calculate rise-set-hour-angle
+               ((eq passage-point 'set) rise-set-hour-angle)
                (t (- rise-set-hour-angle))))
 
              ;; angle moon to target point
-             (angle-moon-to-target (moonrise-normalize-degrees-180+180 (- target-point-hour-angle moon-hour-angle))))
+             (angle-moon-to-target (moonrise-normalize-degrees-180+180 (- passage-point-hour-angle moon-hour-angle))))
 
         (setq delta-d (/ angle-moon-to-target 347.8))
-        ;;(message "d=%f ra=%f dec=%f st=%f para=%f rise-set-alt=%f cos-rise-set-hangle=%f target-point-hangle=%f moon-hangle=%f delta-angle=%f delta-d=%f" d ra dec st para rise-set-altitude cos-rise-set-hour-angle target-point-hour-angle moon-hour-angle angle-moon-to-target delta-d)
+        ;;(message "d=%f ra=%f dec=%f st=%f para=%f rise-set-alt=%f cos-rise-set-hangle=%f passage-point-hangle=%f moon-hangle=%f delta-angle=%f delta-d=%f" d ra dec st para rise-set-altitude cos-rise-set-hour-angle passage-point-hour-angle moon-hour-angle angle-moon-to-target delta-d)
         (setq d (+ d delta-d))))
 
     (+ jd2000 d)))
 
-(defun moonrise-in-day (day-begin-jd2000 &optional target-point long lat height)
-  (let ((jdp (moonrise-around (+ day-begin-jd2000 0.5) target-point long lat height)))
+(defun moonrise-in-day (day-begin-jd2000 &optional passage-point long lat height)
+  (let ((jdp (moonrise-around (+ day-begin-jd2000 0.5) passage-point long lat height)))
     (when (and (>= jdp day-begin-jd2000) (< jdp (+ day-begin-jd2000 1.0)))
       jdp)))
 
-(defun moonrise-list (begin-jd2000 end-jd2000 &optional target-point long lat height)
+(defun moonrise-list (begin-jd2000 end-jd2000 &optional passage-point long lat height)
   (let ((jd begin-jd2000)
         results)
     (while (< jd end-jd2000)
-      (let ((jdp (moonrise-in-day jd target-point long lat height)))
+      (let ((jdp (moonrise-in-day jd passage-point long lat height)))
         (when (and jdp (not (and results (< (abs (- (car results) jdp)) 1e-6))))
           (push jdp results)))
       (setq jd (+ jd 1.0)))
@@ -593,8 +593,8 @@
 ;;;; String Formatting
 
 
-(defun moonrise-point-name (target-point)
-  (or (cdr (assq target-point moonrise-point-name-alist)) ""))
+(defun moonrise-point-name (passage-point)
+  (or (cdr (assq passage-point moonrise-point-name-alist)) ""))
 
 (defun moonrise-moon-age-string (age)
   (cond
@@ -619,11 +619,11 @@
       (solar-time-string (+ hour (/ min 60.0))
                          calendar-standard-time-zone-name))))
 
-(defun moonrise-time-and-point-string (time target-point moon-age-p &optional moon-phase-p)
+(defun moonrise-time-and-point-string (time passage-point moon-age-p &optional moon-phase-p)
   (when time
     ;; TODO: Add format customization variable
     (concat
-     (moonrise-point-name target-point)
+     (moonrise-point-name passage-point)
      " "
      (moonrise-time-string time)
 
@@ -653,9 +653,9 @@
         (memq (cdr jdtp) moon-phase-display-points)))
      (sort
       (delq nil
-            (mapcar (lambda (target-point)
-                      (let ((jd (moonrise-in-day day-begin target-point)))
-                        (when jd (cons jd target-point))))
+            (mapcar (lambda (passage-point)
+                      (let ((jd (moonrise-in-day day-begin passage-point)))
+                        (when jd (cons jd passage-point))))
                     display-points))
       (lambda (jdtp1 jdtp2) (< (car jdtp1) (car jdtp2))))
      (or separator ", "))))
