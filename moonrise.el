@@ -34,64 +34,72 @@
 
 ;;;; Customization
 
+(defgroup moonrise nil
+  "Moonrise/moonset calculation."
+  :tag "Moonrise"
+  :prefix "moonrise-"
+  :group 'calendar)
+
 (defcustom moonrise-point-name-alist
   '((rise . "Moonrise")
     (set . "Moonset")
     (meridian . "Moon's Meridian Passing"))
-  "Alist of moon position names."
-  :type '(alist :key-type (symbol :tag "Key")
-                :key-value (string :tag "Value"))
-  :group 'calendar)
+  "Alist of moon passage points and their display names."
+  :type '(alist
+          :key-type (choice :tag "Key"
+                            (const rise) (const meridian) (const set) symbol)
+          :value-type (string :tag "Value"))
+  :group 'moonrise)
 
 (defcustom moonrise-display-points
   '(rise meridian set)
-  "List of points display time."
-  :type '(list symbol)
-  :group 'calendar)
+  "List of moon passage points to display."
+  :type '(set (const rise) (const meridian) (const set))
+  :group 'moonrise)
 
 (defcustom moonrise-display-points-org-agenda
   '(rise set)
-  "List of points display time for org-agenda."
-  :type '(list symbol)
-  :group 'calendar)
+  "List of moon passage points to display in Org Agenda."
+  :type '(set (const rise) (const meridian) (const set))
+  :group 'moonrise)
 
 (defcustom moonrise-moon-age-format
   " (%.2f)"
-  "Moon's age format."
+  "Format for displaying the moon age."
   :type '(choice (string :tag "Format string")
                  (function :tag "Formatter"))
-  :group 'calendar)
+  :group 'moonrise)
 
 (defcustom moonrise-moon-age-display-points
   '(meridian)
-  "List of points display moon's age."
-  :type '(list symbol)
-  :group 'calendar)
+  "List of moon passage points to display moon age."
+  :type '(set (const rise) (const meridian) (const set))
+  :group 'moonrise)
 
 (defcustom moonrise-moon-age-display-points-org-agenda
   '(rise)
-  "List of points display moon's age for org-agenda."
-  :type '(list symbol)
-  :group 'calendar)
+  "List of moon passage points to display moon age in Org Agenda."
+  :type '(set (const rise) (const meridian) (const set))
+  :group 'moonrise)
 
 (defcustom moonrise-moon-phase-format
   #'moonrise-moon-phase-format-default
-  "Moon phase format."
+  "Format for displaying the moon phase."
   :type '(choice (string :tag "Format string")
                  (function :tag "Formatter"))
-  :group 'calendar)
+  :group 'moonrise)
 
 (defcustom moonrise-moon-phase-display-points
   '(meridian)
-  "List of points display moon phase."
-  :type '(list symbol)
-  :group 'calendar)
+  "List of moon passage points to display moon phase."
+  :type '(set (const rise) (const meridian) (const set))
+  :group 'moonrise)
 
 (defcustom moonrise-moon-phase-display-points-org-agenda
   '(rise)
-  "List of points display moon phase for org-agenda."
-  :type '(list symbol)
-  :group 'calendar)
+  "List of moon passage points to display moon phase in Org Agenda."
+  :type '(set (const rise) (const meridian) (const set))
+  :group 'moonrise)
 
 
 ;;;; Math Utilities
@@ -706,9 +714,12 @@ Accurate to a few seconds."
 
 ;;;;; For org-agenda.el
 
-(defcustom moonrise-org-agenda-use-cache nil ""
+(defcustom moonrise-org-agenda-use-cache nil
+  "Non-nil means use cached moon data in Org Agenda.
+
+To clear the cache, use the command `moonrise-org-agenda-cache-clear'."
   :type 'boolean
-  :group 'calendar)
+  :group 'moonrise)
 
 (with-no-warnings (defvar org-agenda-current-date))
 
