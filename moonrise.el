@@ -166,6 +166,13 @@ See that variable for detailed documentation on available options."
                  (function :tag "Formatter"))
   :group 'moonrise)
 
+(defcustom moonrise-moon-phase-image-height nil
+  "Height of moon phase images in pixels.
+
+If nil, automatically determine the height based on `default-font-height'."
+  :type '(choice (const nil) integer)
+  :group 'moonrise)
+
 (defcustom moonrise-point-event-format
   '((point-name :separator " ")
     (time :separator " ")
@@ -265,6 +272,16 @@ See `moonrise-org-agenda-format-default' for the default implementation."
 
 To clear the cache, use the command `moonrise-org-agenda-cache-clear'."
   :type 'boolean
+  :group 'moonrise)
+
+(defcustom moonrise-use-images 'auto
+  "Whether to use images for moon phase display.
+
+Value can be one of:
+  nil  - Never use images
+  t    - Always use images
+  auto - Use images automatically when SVG is available or in batch mode"
+  :type '(choice (const auto) (const t) (const nil))
   :group 'moonrise)
 
 
@@ -805,8 +822,32 @@ Return a value in degrees in the range [0, 360), where:
 
 PHASE is the moon phase in degrees.
 Return a string with a display property showing the moon's appearance,
-or a text representation if graphical display is unavailable."
-  (moonrise-moon-phase-svg-image-string phase (1- (default-font-height))))
+or a text representation based on `moonrise-use-images'."
+  (moonrise-moon-phase-svg-image-string
+   phase
+   (or moonrise-moon-phase-image-height
+       ;; In batch mode, (default-font-height) seems to be set to 1
+       (if noninteractive
+           (1- 16)
+         (1- (default-font-height))))))
+
+(defun moonrise-use-images-p ()
+  "Return non-nil if images should be used for moon phase display.
+
+When images are used is determined by `moonrise-use-images'."
+  (pcase moonrise-use-images
+    ('nil nil)
+    ('t t)
+    ('auto
+     (or
+      noninteractive
+      (and
+       (featurep 'image)
+       (featurep 'svg)
+       (display-graphic-p)
+       (fboundp 'image-type-available-p)
+       (image-type-available-p 'svg))))
+    (_ nil)))
 
 (defun moonrise-moon-phase-svg-image-string (phase
                                              size
@@ -820,14 +861,9 @@ LIGHT and SHADOW are colors for sunlit and dark portions (default: #ffc
 and #000).
 
 Return a string with a display property containing the SVG image,
-or a text representation if SVG is unavailable."
+or a text representation based on `moonrise-use-images'."
   (let ((str (format "%.2f[deg]" phase)))
-    (if (and
-         (featurep 'image)
-         (featurep 'svg)
-         (display-graphic-p)
-         (fboundp 'image-type-available-p)
-         (image-type-available-p 'svg))
+    (if (moonrise-use-images-p)
         (propertize
          str
          'display
