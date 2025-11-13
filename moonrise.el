@@ -880,6 +880,7 @@ ASCENT, LIGHT, and SHADOW are as in `moonrise-moon-phase-svg-image-string'.
 Return an image object suitable for display properties."
   (svg-image
    (moonrise-moon-phase-svg phase size light shadow)
+   :scale 1
    :ascent (or ascent 'center)))
 
 (defun moonrise-moon-phase-svg (phase size &optional light shadow)
